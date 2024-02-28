@@ -6,12 +6,13 @@ namespace SPC\builder\windows\library;
 
 use SPC\store\FileSystem;
 
-class curl extends WindowsLibraryBase
+class libxml2 extends WindowsLibraryBase
 {
-    public const NAME = 'curl';
+    public const NAME = 'libxml2';
 
     protected function build(): void
     {
+        $zlib = $this->builder->getLib('zlib') ? 'ON' : 'OFF';
         // reset cmake
         FileSystem::resetDir($this->source_dir . '\build');
 
@@ -22,19 +23,22 @@ class curl extends WindowsLibraryBase
                 '-B build ' .
                 '-A x64 ' .
                 "-DCMAKE_TOOLCHAIN_FILE={$this->builder->cmake_toolchain_file} " .
-                '-DCMAKE_BUILD_TYPE=Release ' .
                 '-DBUILD_SHARED_LIBS=OFF ' .
                 '-DBUILD_STATIC_LIBS=ON ' .
-                '-DBUILD_CURL_EXE=OFF ' .
-                '-DUSE_ZLIB=ON ' .
-                '-DCURL_USE_OPENSSL=ON ' .
-                '-DCURL_USE_LIBLSSH2=ON ' .
-                '-DUSE_NGHTTP2=ON ' . // php-src with curl needs nghttp2
+                "-DLIBXML2_WITH_ZLIB={$zlib} " .
+                '-DLIBXML2_WITH_PYTHON=OFF ' .
+                '-DLIBXML2_WITH_ICONV=ON ' .
+                '-DIconv_LIBRARY=' . BUILD_LIB_PATH . ' ' .
+                '-DIconv_INCLUDE_DIR=' . BUILD_INCLUDE_PATH . ' ' .
+                '-DLIBXML2_WITH_LZMA=OFF ' . // xz not supported yet
+                '-DLIBXML2_WITH_PROGRAMS=OFF ' .
+                '-DLIBXML2_WITH_TESTS=OFF ' .
                 '-DCMAKE_INSTALL_PREFIX=' . BUILD_ROOT_PATH . ' '
             )
             ->execWithWrapper(
                 $this->builder->makeSimpleWrapper('cmake'),
                 "--build build --config Release --target install -j{$this->builder->concurrency}"
             );
+        copy(BUILD_LIB_PATH . '\libxml2s.lib', BUILD_LIB_PATH . '\libxml2_a.lib');
     }
 }
